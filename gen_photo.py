@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fotós 1:1 hirdetéskép: python3 gen_photo.py "Cím = kiemelt rész" <unsplash_photo_id> <kimenet.jpg>"""
 import sys, io, urllib.request, textwrap
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 S=1080
 BOLD="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 BORD=(123,28,62); GOLD=(201,151,58); DARK=(34,26,28)
@@ -20,22 +20,23 @@ def wrap(words,d,f,maxw):
     lines.append(cur);return lines
 def make(title,pid,out):
     t=title.upper().rstrip(".").split()
-    k=len(t)-2
+    k=len(t)-1
     if "=" in t: k=t.index("=")+1; t.remove("=")
     words=[(w,i>=k) for i,w in enumerate(t)]
-    img=load(pid).convert("RGBA")
+    img=load(pid).filter(ImageFilter.GaussianBlur(3)).convert("RGBA")
     ov=Image.new("RGBA",(S,S),(0,0,0,0)); od=ImageDraw.Draw(ov)
-    for x in range(S):
-        a=int(235*max(0,1-x/760)**1.2); od.line([(x,0),(x,S)],fill=(30,22,25,a))
+    od.rectangle([0,0,S,S],fill=(28,20,24,175))
+    for y_ in range(S):
+        a=int(70*(y_/S)); od.line([(0,y_),(S,y_)],fill=(20,14,17,a))
     img=Image.alpha_composite(img,ov); d=ImageDraw.Draw(img)
     # felső jelvény
     f=font(34); label="INGYENES ELŐADÁS"; w=d.textlength(label,font=f)
     d.rounded_rectangle([70,70,70+w+60,140],35,fill=GOLD); d.text((100,86),label,font=f,fill=DARK)
     # cím
-    maxw=640
-    for sz in (88,80,72,64,56):
+    maxw=900
+    for sz in (104,96,88,80,72,64):
         f=font(sz); lines=wrap(words,d,f,maxw)
-        if len(lines)*sz*1.28<=520: break
+        if len(lines)<=4 and len(lines)*sz*1.28<=560: break
     lh=int(sz*1.28); y=int(500-len(lines)*lh/2)+40
     for line in lines:
         x=70
@@ -47,7 +48,7 @@ def make(title,pid,out):
             x+=ww+d.textlength(" ",font=f)
         y+=lh
     # alszöveg
-    f2=font(34); d.text((70,y+24),"Jelentkezz az ingyenes előadásra.",font=f2,fill=(240,232,222))
+    f2=font(40); d.text((70,y+22),"Élő · ingyenes · online",font=f2,fill=(255,255,255))
     # CTA gomb
     f3=font(36); lab="JELENTKEZZ INGYEN"; ww=d.textlength(lab,font=f3)
     d.rounded_rectangle([70,900,70+ww+150,986],43,fill=BORD)
